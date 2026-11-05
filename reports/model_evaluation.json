@@ -1,0 +1,329 @@
+{
+  "source": "UCI Online Retail II observed transactions",
+  "selection": "Top 10 products by observed historical units",
+  "evaluation": {
+    "84077": {
+      "product_name": "WORLD WAR 2 GLIDERS ASSTD DESIGNS",
+      "selected_model": "Gradient Boosting",
+      "validation_metrics": {
+        "Naive": {
+          "mae": 95.8,
+          "rmse": 109.81833483834413,
+          "mape_pct": 75.82372925524894
+        },
+        "Moving Average": {
+          "mae": 97.68784016331824,
+          "rmse": 109.69761846936896,
+          "mape_pct": 84.95039769690109
+        },
+        "Random Forest": {
+          "mae": 126.3764071699534,
+          "rmse": 176.61921235160904,
+          "mape_pct": 144.8748997923219
+        },
+        "Gradient Boosting": {
+          "mae": 81.73816590448982,
+          "rmse": 103.22760280309716,
+          "mape_pct": 67.35356564065805
+        }
+      },
+      "uncertainty": {
+        "lower_residual_95": -93.2402412375456,
+        "upper_residual_95": 212.1329932965316,
+        "validation_days": 30,
+        "method": "empirical chronological holdout residual quantiles; approximate"
+      }
+    },
+    "85099B": {
+      "product_name": "JUMBO BAG RED WHITE SPOTTY",
+      "selected_model": "Gradient Boosting",
+      "validation_metrics": {
+        "Naive": {
+          "mae": 580.7666666666667,
+          "rmse": 601.3822134605135,
+          "mape_pct": 1026.0462773556146
+        },
+        "Moving Average": {
+          "mae": 207.0497508201023,
+          "rmse": 250.66803254427543,
+          "mape_pct": 339.53893151044537
+        },
+        "Random Forest": {
+          "mae": 151.20980937007909,
+          "rmse": 215.86937732950452,
+          "mape_pct": 193.07136329484428
+        },
+        "Gradient Boosting": {
+          "mae": 106.86810648085476,
+          "rmse": 210.1454105244961,
+          "mape_pct": 99.89361495086247
+        }
+      },
+      "uncertainty": {
+        "lower_residual_95": -101.00019214450477,
+        "upper_residual_95": 607.074526945628,
+        "validation_days": 30,
+        "method": "empirical chronological holdout residual quantiles; approximate"
+      }
+    },
+    "21212": {
+      "product_name": "PACK OF 72 RETRO SPOT CAKE CASES",
+      "selected_model": "Moving Average",
+      "validation_metrics": {
+        "Naive": {
+          "mae": 62.46666666666667,
+          "rmse": 80.1224063542777,
+          "mape_pct": 99.75689193969461
+        },
+        "Moving Average": {
+          "mae": 39.93776644276003,
+          "rmse": 52.87110816371456,
+          "mape_pct": 353.28468623394355
+        },
+        "Random Forest": {
+          "mae": 98.27361122758451,
+          "rmse": 123.72924051689314,
+          "mape_pct": 1086.7977851510116
+        },
+        "Gradient Boosting": {
+          "mae": 55.243060853344375,
+          "rmse": 64.89284494398927,
+          "mape_pct": 600.3208037244135
+        }
+      },
+      "uncertainty": {
+        "lower_residual_95": -72.52653195334824,
+        "upper_residual_95": 114.59272653019265,
+        "validation_days": 30,
+        "method": "empirical chronological holdout residual quantiles; approximate"
+      }
+    },
+    "85123A": {
+      "product_name": "WHITE HANGING HEART T-LIGHT HOLDER",
+      "selected_model": "Naive",
+      "validation_metrics": {
+        "Naive": {
+          "mae": 89.9,
+          "rmse": 119.62148636428157,
+          "mape_pct": 255.77847874009524
+        },
+        "Moving Average": {
+          "mae": 95.69526824291556,
+          "rmse": 121.6841934028946,
+          "mape_pct": 299.95401189660333
+        },
+        "Random Forest": {
+          "mae": 114.41997725515886,
+          "rmse": 142.7377288393373,
+          "mape_pct": 486.3124919689445
+        },
+        "Gradient Boosting": {
+          "mae": 90.1504746011069,
+          "rmse": 115.66724377345602,
+          "mape_pct": 340.76490709403276
+        }
+      },
+      "uncertainty": {
+        "lower_residual_95": -113.0,
+        "upper_residual_95": 288.1749999999999,
+        "validation_days": 30,
+        "method": "empirical chronological holdout residual quantiles; approximate"
+      }
+    },
+    "22197": {
+      "product_name": "POPCORN HOLDER , SMALL",
+      "selected_model": "Random Forest",
+      "validation_metrics": {
+        "Naive": {
+          "mae": 803.1666666666666,
+          "rmse": 868.3562440995439,
+          "mape_pct": 343.7915804496806
+        },
+        "Moving Average": {
+          "mae": 530.2534125296955,
+          "rmse": 662.0053210215198,
+          "mape_pct": 203.0282604378417
+        },
+        "Random Forest": {
+          "mae": 351.1488519175819,
+          "rmse": 633.3977556567735,
+          "mape_pct": 97.94603161576609
+        },
+        "Gradient Boosting": {
+          "mae": 367.18593919674083,
+          "rmse": 704.239922425805,
+          "mape_pct": 56.51619016024364
+        }
+      },
+      "uncertainty": {
+        "lower_residual_95": -383.48744503166847,
+        "upper_residual_95": 1556.2343241706083,
+        "validation_days": 30,
+        "method": "empirical chronological holdout residual quantiles; approximate"
+      }
+    },
+    "84879": {
+      "product_name": "ASSORTED COLOUR BIRD ORNAMENT",
+      "selected_model": "Gradient Boosting",
+      "validation_metrics": {
+        "Naive": {
+          "mae": 1168.3666666666666,
+          "rmse": 1175.2188023229264,
+          "mape_pct": 2059.5806295438665
+        },
+        "Moving Average": {
+          "mae": 232.68942288369138,
+          "rmse": 256.9411202935222,
+          "mape_pct": 514.6616393471801
+        },
+        "Random Forest": {
+          "mae": 137.00961253955236,
+          "rmse": 206.31977507506045,
+          "mape_pct": 214.13945764118498
+        },
+        "Gradient Boosting": {
+          "mae": 82.86231826385588,
+          "rmse": 123.62514136022901,
+          "mape_pct": 116.16591722991572
+        }
+      },
+      "uncertainty": {
+        "lower_residual_95": -84.34539241028905,
+        "upper_residual_95": 316.33532066001743,
+        "validation_days": 30,
+        "method": "empirical chronological holdout residual quantiles; approximate"
+      }
+    },
+    "23166": {
+      "product_name": "MEDIUM CERAMIC TOP STORAGE JAR",
+      "selected_model": "Random Forest",
+      "validation_metrics": {
+        "Naive": {
+          "mae": 26.6,
+          "rmse": 58.6083043035143,
+          "mape_pct": 76.782851127865
+        },
+        "Moving Average": {
+          "mae": 25.812874537133123,
+          "rmse": 57.26135148770109,
+          "mape_pct": 83.12392785927565
+        },
+        "Random Forest": {
+          "mae": 25.133737681648885,
+          "rmse": 55.37750834284331,
+          "mape_pct": 103.94798353881265
+        },
+        "Gradient Boosting": {
+          "mae": 25.510778022077787,
+          "rmse": 56.32746864188974,
+          "mape_pct": 118.61198392235823
+        }
+      },
+      "uncertainty": {
+        "lower_residual_95": -15.478581894791992,
+        "upper_residual_95": 147.94015315356106,
+        "validation_days": 30,
+        "method": "empirical chronological holdout residual quantiles; approximate"
+      }
+    },
+    "17003": {
+      "product_name": "BROCADE RING PURSE",
+      "selected_model": "Gradient Boosting",
+      "validation_metrics": {
+        "Naive": {
+          "mae": 43.5,
+          "rmse": 66.96740500671453,
+          "mape_pct": 100.0
+        },
+        "Moving Average": {
+          "mae": 40.90725724111262,
+          "rmse": 61.47259576849075,
+          "mape_pct": 126.82878471567258
+        },
+        "Random Forest": {
+          "mae": 177.48000754234994,
+          "rmse": 252.9464581882594,
+          "mape_pct": 3740.3752780984837
+        },
+        "Gradient Boosting": {
+          "mae": 37.90512127791916,
+          "rmse": 52.61143796856065,
+          "mape_pct": 232.5226699586918
+        }
+      },
+      "uncertainty": {
+        "lower_residual_95": -29.970271586595103,
+        "upper_residual_95": 130.5991610802402,
+        "validation_days": 30,
+        "method": "empirical chronological holdout residual quantiles; approximate"
+      }
+    },
+    "21977": {
+      "product_name": "PACK OF 60 PINK PAISLEY CAKE CASES",
+      "selected_model": "Gradient Boosting",
+      "validation_metrics": {
+        "Naive": {
+          "mae": 42.06666666666667,
+          "rmse": 66.12513390030551,
+          "mape_pct": 137.41945627604522
+        },
+        "Moving Average": {
+          "mae": 42.655076507162335,
+          "rmse": 68.05658232206879,
+          "mape_pct": 116.73367014958266
+        },
+        "Random Forest": {
+          "mae": 77.47801969500452,
+          "rmse": 96.33223675367931,
+          "mape_pct": 594.5603146578103
+        },
+        "Gradient Boosting": {
+          "mae": 35.19644007019661,
+          "rmse": 59.30801826698167,
+          "mape_pct": 173.07855578458688
+        }
+      },
+      "uncertainty": {
+        "lower_residual_95": -36.44060786824886,
+        "upper_residual_95": 185.06975081642358,
+        "validation_days": 30,
+        "method": "empirical chronological holdout residual quantiles; approximate"
+      }
+    }
+  },
+  "mean_validation_metrics_across_evaluated_products": {
+    "Naive": {
+      "mae": 323.6259259259259,
+      "rmse": 349.58003673893575,
+      "mape_pct": 463.88665496534566
+    },
+    "Moving Average": {
+      "mae": 145.85429659643236,
+      "rmse": 182.29532483039512,
+      "mape_pct": 235.78936776082733
+    },
+    "Random Forest": {
+      "mae": 139.83667048876816,
+      "rmse": 211.4810325615511,
+      "mape_pct": 740.2250673065755
+    },
+    "Gradient Boosting": {
+      "mae": 98.07337829673179,
+      "rmse": 165.5605656342783,
+      "mape_pct": 200.58091205175145
+    }
+  },
+  "selected_model_counts": {
+    "Naive": 1,
+    "Moving Average": 1,
+    "Random Forest": 2,
+    "Gradient Boosting": 5
+  },
+  "warnings": [
+    {
+      "product_id": "23843",
+      "warning": "Only 1 calendar days of history; at least 90 are required."
+    }
+  ],
+  "forecast_note": "Future actual demand is unavailable; actual_demand is null."
+}

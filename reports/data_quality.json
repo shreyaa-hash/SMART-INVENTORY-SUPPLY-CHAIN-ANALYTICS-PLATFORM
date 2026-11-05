@@ -1,0 +1,47 @@
+{
+  "dataset": "UCI Online Retail II",
+  "dataset_url": "https://archive.ics.uci.edu/dataset/502/online+retail+ii",
+  "source_sheets": {
+    "Year 2009-2010": 525461,
+    "Year 2010-2011": 541910
+  },
+  "total_source_records": 1067371,
+  "total_clean_sales_records": 1007913,
+  "missing_values_by_column": {
+    "Invoice": 0,
+    "StockCode": 0,
+    "Description": 4382,
+    "Quantity": 0,
+    "InvoiceDate": 0,
+    "Price": 0,
+    "Customer ID": 243007,
+    "Country": 0
+  },
+  "duplicate_count_removed": 34335,
+  "invalid_records_excluded": 25123,
+  "outlier_count_by_numeric_column_iqr_flagged_not_removed": {
+    "Quantity": 116489,
+    "Price": 68105,
+    "Customer ID": 0
+  },
+  "data_type_summary": {
+    "Invoice": "object",
+    "StockCode": "object",
+    "Description": "object",
+    "Quantity": "int64",
+    "InvoiceDate": "datetime64[us]",
+    "Price": "float64",
+    "Customer ID": "float64",
+    "Country": "str"
+  },
+  "cleaning_actions": [
+    "Removed exact duplicate rows",
+    "Parsed invoice dates and coerced invalid dates to missing",
+    "Excluded cancellations, non-positive quantities/prices, invalid dates, and missing invoice/product keys",
+    "Trimmed product, invoice, description, and country strings",
+    "Filled missing product descriptions/countries with explicit Unknown labels",
+    "Flagged IQR outliers without deleting plausible high-volume sales",
+    "Generated synthetic stock, unit costs, categories, warehouses, suppliers, and deliveries with seed 42"
+  ],
+  "synthetic_data_notice": "Inventory, unit costs, inferred categories, warehouse assignments, suppliers and deliveries are synthetic demonstration data, not UCI observations."
+}

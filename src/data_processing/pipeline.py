@@ -16,6 +16,7 @@ REQUIRED_COLUMNS = {
     "Quantity",
     "InvoiceDate",
     "Price",
+    "Customer ID",
     "Country",
 }
 RANDOM_SEED = 42
@@ -102,7 +103,11 @@ def _make_synthetic_entities(
     sales_rows["sales_date"] = pd.to_datetime(sales_rows["invoice_date"]).dt.normalize()
     orders = (
         sales_rows.groupby("invoice_id", as_index=False)
-        .agg(order_date=("invoice_date", "min"), customer_country=("country", "first"))
+        .agg(
+            order_date=("invoice_date", "min"),
+            customer_id=("customer_id", "first"),
+            customer_country=("country", "first"),
+        )
         .merge(invoice_map, on="invoice_id", how="left")
     )
     orders["data_source"] = "observed transaction; warehouse assignment synthetic"
@@ -206,6 +211,8 @@ def process_dataset(
     data["InvoiceDate"] = pd.to_datetime(data["InvoiceDate"], errors="coerce")
     data["Quantity"] = pd.to_numeric(data["Quantity"], errors="coerce")
     data["Price"] = pd.to_numeric(data["Price"], errors="coerce")
+    if "Customer ID" in data.columns:
+        data["Customer ID"] = pd.to_numeric(data["Customer ID"], errors="coerce")
 
     invalid_date = data["InvoiceDate"].isna()
     invalid_core = (
@@ -223,6 +230,8 @@ def process_dataset(
     cleaned["Description"] = cleaned["Description"].fillna("Unknown product")
     cleaned["Country"] = cleaned["Country"].fillna("Unknown")
     cleaned["line_revenue"] = (cleaned["Quantity"] * cleaned["Price"]).round(2)
+    if "Customer ID" in cleaned.columns:
+        cleaned["Customer ID"] = pd.to_numeric(cleaned["Customer ID"], errors="coerce")
     cleaned = cleaned.rename(
         columns={
             "Invoice": "invoice_id",
@@ -235,7 +244,7 @@ def process_dataset(
             "Country": "country",
         }
     )
-    cleaned["customer_id"] = cleaned.get("customer_id", pd.Series(index=cleaned.index, dtype=float))
+    cleaned["customer_id"] = pd.to_numeric(cleaned["customer_id"], errors="coerce")
     cleaned["invoice_date"] = cleaned["invoice_date"].dt.strftime("%Y-%m-%d %H:%M:%S")
     cleaned["data_source"] = "UCI Online Retail II (observed)"
 
@@ -244,6 +253,7 @@ def process_dataset(
         .agg(description=("description", "first"), unit_price=("unit_price", "median"))
     )
     synthetic = _make_synthetic_entities(cleaned, products, seed)
+    synthetic["orders"]["customer_id"] = pd.to_numeric(synthetic["orders"].get("customer_id"), errors="coerce")
 
     output_dir.mkdir(parents=True, exist_ok=True)
     synthetic_dir = output_dir.parent / "synthetic"
@@ -273,12 +283,15 @@ def process_dataset(
         "missing_values_by_column": missing_counts,
         "duplicate_count_removed": duplicate_count,
         "invalid_records_excluded": invalid_records,
+        "cancelled_invoices_excluded": int(cancelled.sum()),
+        "missing_customer_ids_in_cleaned_data": int(cleaned["customer_id"].isna().sum()) if "customer_id" in cleaned.columns else 0,
         "outlier_count_by_numeric_column_iqr_flagged_not_removed": outliers,
         "data_type_summary": {key: str(value) for key, value in original.dtypes.items()},
         "cleaning_actions": [
             "Removed exact duplicate rows",
             "Parsed invoice dates and coerced invalid dates to missing",
             "Excluded cancellations, non-positive quantities/prices, invalid dates, and missing invoice/product keys",
+            "Preserved customer IDs as nullable values; missing customer IDs remain null and do not invalidate the transaction",
             "Trimmed product, invoice, description, and country strings",
             "Filled missing product descriptions/countries with explicit Unknown labels",
             "Flagged IQR outliers without deleting plausible high-volume sales",

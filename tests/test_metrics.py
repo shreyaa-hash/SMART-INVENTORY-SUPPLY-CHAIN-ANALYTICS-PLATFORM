@@ -10,6 +10,7 @@ from src.analytics.metrics import (
     reorder_point,
     safety_stock,
     sell_through_rate,
+    stock_coverage_days,
     stockout_rate,
 )
 
@@ -32,6 +33,13 @@ def test_inventory_metrics_calculate_expected_values():
     assert reorder_point(4, 10, 8) == 48
     assert safety_stock(2, 10, 4, 1, sufficient_history=True) > 0
     assert safety_stock(2, 10, 4, 1, sufficient_history=False) is None
+    assert stock_coverage_days(120, 10) == 12
+    assert stock_coverage_days(120, 0) is None
+
+
+def test_inventory_metrics_uses_average_inventory_value_over_same_period():
+    assert inventory_turnover(300, 150) == 2
+    assert days_inventory_outstanding(150, 300, 365) == 182.5
 
 
 def test_abc_classification_uses_cumulative_value():

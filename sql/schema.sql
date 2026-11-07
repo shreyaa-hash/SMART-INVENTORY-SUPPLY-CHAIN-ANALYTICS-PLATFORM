@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS products (
 CREATE TABLE IF NOT EXISTS orders (
   order_id VARCHAR(30) PRIMARY KEY,
   order_date DATETIME NOT NULL,
+  customer_id INT NULL,
   customer_country VARCHAR(100) NOT NULL,
   warehouse_id VARCHAR(20) NOT NULL,
   data_source VARCHAR(100) NOT NULL,

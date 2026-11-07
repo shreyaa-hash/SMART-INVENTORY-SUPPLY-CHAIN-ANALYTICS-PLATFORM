@@ -41,6 +41,8 @@ def _records(name: str, csv_path: Path) -> list[dict]:
         frame = frame.rename(columns={"description": "description"})
     elif name == "orders":
         frame = frame.rename(columns={"invoice_id": "order_id"})
+        if "customer_id" in frame.columns:
+            frame["customer_id"] = pd.to_numeric(frame["customer_id"], errors="coerce")
         frame["order_date"] = pd.to_datetime(frame["order_date"])
     elif name == "order_items":
         frame["order_item_id"] = frame["order_item_id"].astype(int)

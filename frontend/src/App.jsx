@@ -3,18 +3,24 @@ import Sidebar from "./components/Sidebar.jsx";
 import ExecutiveOverview from "./pages/ExecutiveOverview.jsx";
 import InventoryAnalytics from "./pages/InventoryAnalytics.jsx";
 import SalesAnalytics from "./pages/SalesAnalytics.jsx";
+import ProductAnalytics from "./pages/ProductAnalytics.jsx";
+import CustomerAnalytics from "./pages/CustomerAnalytics.jsx";
 import SupplierAnalytics from "./pages/SupplierAnalytics.jsx";
 import DemandForecasting from "./pages/DemandForecasting.jsx";
 import Recommendations from "./pages/Recommendations.jsx";
+import DataQuality from "./pages/DataQuality.jsx";
 import { apiGet } from "./services/api.js";
 
 const pageMeta = {
   overview: ["Executive overview", "Performance snapshot and commercial trends"],
-  inventory: ["Inventory analytics", "Stock health, coverage, and replenishment exposure"],
   sales: ["Sales analytics", "Observed demand, products, categories, and customer regions"],
+  products: ["Product analytics", "Revenue and mix by product and category"],
+  customer: ["Customer analytics", "RFM segmentation and repeat-customer economics"],
+  inventory: ["Inventory analytics", "Stock health, coverage, and replenishment exposure"],
   suppliers: ["Supplier analytics", "Demonstration lead-time and delivery reliability"],
   forecast: ["Demand forecasting", "Chronological model comparison and forward demand"],
   recommendations: ["Business recommendations", "Prioritized actions for inventory planners"],
+  quality: ["Data quality and provenance", "Audit of observed, derived, and synthetic data"],
 };
 
 function queryDates(dates) {
@@ -61,10 +67,22 @@ export default function App() {
           apiGet("/api/sales/regions", { ...dates, limit: 20 }),
         ]);
         payload = { monthly, categories, topProducts, regions };
+      } else if (page === "products") {
+        const dates = queryDates(dateRange);
+        const [topProducts, categories] = await Promise.all([
+          apiGet("/api/sales/products", { ...dates, limit: 20 }),
+          apiGet("/api/sales/categories", dates),
+        ]);
+        payload = { topProducts, categories };
+      } else if (page === "customer") {
+        const dates = queryDates(dateRange);
+        payload = { customer: await apiGet("/api/customers/segments", dates) };
       } else if (page === "suppliers") {
         payload = { suppliers: await apiGet("/api/suppliers/performance") };
       } else if (page === "forecast") {
         payload = { products: (await apiGet("/api/products", { limit: 5000 })).items };
+      } else if (page === "quality") {
+        payload = { quality: await apiGet("/api/data-quality") };
       } else {
         payload = { recommendations: await apiGet("/api/recommendations", { limit: 5000 }) };
       }
@@ -82,7 +100,10 @@ export default function App() {
   }, [activePage, dateRange, loadPage]);
 
   const title = pageMeta[activePage][0];
-  const dateFilters = useMemo(() => activePage === "overview" || activePage === "sales", [activePage]);
+  const dateFilters = useMemo(
+    () => ["overview", "sales", "products", "customer"].includes(activePage),
+    [activePage],
+  );
 
   const refreshRecommendations = () => {
     setData((current) => ({ ...current, recommendations: undefined }));
@@ -105,11 +126,14 @@ export default function App() {
         {error && <div className="error-banner" role="alert"><span>{error}</span><button className="button secondary" onClick={() => loadPage(activePage, true)}>Retry</button></div>}
         <div className="page-body">
           {activePage === "overview" && data.overview && <ExecutiveOverview {...data.overview} />}
-          {activePage === "inventory" && data.inventory && <InventoryAnalytics {...data.inventory} />}
           {activePage === "sales" && data.sales && <SalesAnalytics {...data.sales} />}
+          {activePage === "products" && data.products && <ProductAnalytics {...data.products} />}
+          {activePage === "customer" && data.customer && <CustomerAnalytics customer={data.customer} />}
+          {activePage === "inventory" && data.inventory && <InventoryAnalytics {...data.inventory} />}
           {activePage === "suppliers" && data.suppliers && <SupplierAnalytics {...data.suppliers} />}
           {activePage === "forecast" && data.forecast && <DemandForecasting {...data.forecast} />}
           {activePage === "recommendations" && data.recommendations && <Recommendations {...data.recommendations} onRefresh={refreshRecommendations} />}
+          {activePage === "quality" && data.quality && <DataQuality quality={data.quality} />}
           {!data[activePage] && !loading && !error && <div className="empty-page">Choose a page to load live analytics.</div>}
         </div>
         <footer className="app-footer"><span>Stockwise · Smart Inventory Analytics</span><span>Local data pipeline · FastAPI · MySQL-compatible</span></footer>

@@ -49,6 +49,7 @@ class Order(Base):
     __tablename__ = "orders"
     order_id: Mapped[str] = mapped_column(String(30), primary_key=True)
     order_date: Mapped[DateTime] = mapped_column(DateTime, nullable=False, index=True)
+    customer_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     customer_country: Mapped[str] = mapped_column(String(100), nullable=False)
     warehouse_id: Mapped[str] = mapped_column(ForeignKey("warehouses.warehouse_id"), nullable=False, index=True)
     data_source: Mapped[str] = mapped_column(String(100), nullable=False)

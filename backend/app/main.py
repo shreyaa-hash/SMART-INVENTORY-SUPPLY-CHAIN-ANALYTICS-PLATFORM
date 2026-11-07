@@ -6,10 +6,11 @@ from contextlib import asynccontextmanager
 from datetime import date
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import case, func, or_, select
+from sqlalchemy import case, func, inspect, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from src.database.connection import get_engine
@@ -17,6 +18,7 @@ from src.database.models import (
     Base, Category, DailySale, Inventory, Order, OrderItem, Product,
     Supplier, SupplierDelivery, Warehouse,
 )
+from src.analytics.customer_segmentation import build_customer_segment_report
 from src.analytics.metrics import days_inventory_outstanding, inventory_holding_cost, xyz_classification
 from src.forecasting.pipeline import forecast_product
 from src.recommendations.engine import generate_recommendations
@@ -45,6 +47,19 @@ def _scalar(request: Request, statement):
     except SQLAlchemyError as exc:
         logger.exception("Database scalar query failed")
         raise HTTPException(status_code=503, detail="Database query failed; check the configured database and schema.") from exc
+
+
+def _ensure_schema_compatibility(engine) -> None:
+    try:
+        with engine.begin() as connection:
+            inspector = inspect(connection)
+            if "orders" in inspector.get_table_names():
+                order_columns = {column["name"] for column in inspector.get_columns("orders")}
+                if "customer_id" not in order_columns:
+                    connection.exec_driver_sql("ALTER TABLE orders ADD COLUMN customer_id INTEGER")
+    except SQLAlchemyError:
+        logger.exception("Unable to apply schema compatibility migration for customer_id")
+        raise
 
 
 def _stock_frame(request: Request) -> pd.DataFrame:
@@ -89,6 +104,7 @@ def create_app(database_url: str | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         try:
             Base.metadata.create_all(engine)
+            _ensure_schema_compatibility(engine)
             app.state.engine = engine
             logger.info("Database schema is ready")
         except SQLAlchemyError:
@@ -106,6 +122,7 @@ def create_app(database_url: str | None = None) -> FastAPI:
         version="1.0.0",
         lifespan=lifespan,
     )
+    app.state.engine = engine
     origins = os.getenv(
         "CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
     ).split(",")
@@ -120,7 +137,8 @@ def create_app(database_url: str | None = None) -> FastAPI:
     @app.get("/api/health")
     def health(request: Request):
         try:
-            with request.app.state.engine.connect() as connection:
+            engine = getattr(request.app.state, "engine", None) or app.state.engine
+            with engine.connect() as connection:
                 connection.exec_driver_sql("SELECT 1")
             return {"status": "ok", "database": "connected"}
         except SQLAlchemyError as exc:
@@ -152,10 +170,21 @@ def create_app(database_url: str | None = None) -> FastAPI:
         revenue = float(item_values["revenue"] or 0)
         cogs = float(item_values["cogs"] or 0)
         units_sold = float(item_values["units_sold"] or 0)
-        inventory_value = float(_scalar(
+        snapshot_inventory_value = float(_scalar(
             request,
             select(func.sum(Inventory.quantity_on_hand * Inventory.estimated_unit_cost)),
         ) or 0)
+        inventory_snapshot_rows = _read(
+            request,
+            select(
+                (Inventory.quantity_on_hand * Inventory.estimated_unit_cost).label("inventory_value")
+            )
+            .where(Inventory.as_of_date.is_not(None)),
+        )
+        average_inventory_value_estimated = (
+            float(pd.DataFrame(inventory_snapshot_rows)["inventory_value"].mean())
+            if inventory_snapshot_rows else snapshot_inventory_value
+        )
         zero_stock_count = int(_scalar(
             request,
             select(func.sum(case((Inventory.quantity_on_hand == 0, 1), else_=0))),
@@ -181,11 +210,16 @@ def create_app(database_url: str | None = None) -> FastAPI:
             "orders": int(orders_count),
             "products": int(products_count),
             "categories": int(categories_count),
-            "inventory_value": inventory_value,
-            "inventory_turnover_estimated": cogs / inventory_value if inventory_value else None,
-            "days_inventory_outstanding_estimated": days_inventory_outstanding(inventory_value, cogs, 365),
+            "inventory_value_snapshot_estimated": snapshot_inventory_value,
+            "average_inventory_value_estimated": average_inventory_value_estimated,
+            "inventory_turnover_estimated": (
+                cogs / average_inventory_value_estimated if average_inventory_value_estimated else None
+            ),
+            "days_inventory_outstanding_estimated": days_inventory_outstanding(
+                average_inventory_value_estimated, cogs, 365
+            ),
             "holding_cost_estimated_annual": inventory_holding_cost(
-                inventory_value, float(os.getenv("HOLDING_COST_RATE", "0.25"))
+                average_inventory_value_estimated, float(os.getenv("HOLDING_COST_RATE", "0.25"))
             ),
             "gross_profit_estimated": revenue - cogs,
             "stockout_rate_proxy_pct": (
@@ -194,7 +228,7 @@ def create_app(database_url: str | None = None) -> FastAPI:
             "overstock_value_estimated": overstock_value,
             "units_sold": units_sold,
             "currency": "GBP",
-            "inventory_source": "synthetic demonstration snapshot",
+            "inventory_source": "synthetic demonstration snapshot; final value is a proxy for period-average inventory",
             "cost_source": "synthetic estimated unit costs",
         }
 
@@ -295,6 +329,92 @@ def create_app(database_url: str | None = None) -> FastAPI:
             sales_date=lambda value: value.sales_date.dt.strftime("%Y-%m-%d")
         ).to_dict("records")
 
+    @app.get("/api/customers/segments")
+    def customer_segments(
+        request: Request,
+        start_date: date | None = None,
+        end_date: date | None = None,
+    ):
+        statement = select(
+            Order.customer_id.label("customer_id"),
+            Order.order_id.label("invoice_id"),
+            Order.order_date.label("invoice_date"),
+            OrderItem.quantity.label("quantity"),
+            OrderItem.unit_price.label("unit_price"),
+        ).join(OrderItem, OrderItem.order_id == Order.order_id)
+        if start_date:
+            statement = statement.where(Order.order_date >= start_date)
+        if end_date:
+            statement = statement.where(Order.order_date < pd.Timestamp(end_date) + pd.Timedelta(days=1))
+        frame = _frame(request, statement)
+        if frame.empty:
+            return {
+                "summary": {
+                    "total_identifiable_customers": 0,
+                    "repeat_customer_rate": 0.0,
+                    "average_customer_monetary_value": 0.0,
+                    "purchase_frequency": 0.0,
+                    "customer_revenue_contribution_pct": 0.0,
+                },
+                "segment_counts": {},
+                "segment_revenue": {},
+                "top_customers": [],
+                "rfm_summary": [],
+                "provenance": "Observed transactions are retained; missing customer IDs remain null and are excluded from customer-level segmentation.",
+            }
+        report = build_customer_segment_report(frame)
+        rfm = report["rfm"].sort_values(["monetary", "frequency"], ascending=False)
+        top_customers = rfm.head(10)[["customer_id", "recency_days", "frequency", "monetary", "segment"]].to_dict("records")
+        return {
+            "summary": {
+                "total_identifiable_customers": int(report["summary"].get("total_identifiable_customers", 0)),
+                "repeat_customer_rate": float(report["summary"].get("repeat_customer_rate", 0.0)),
+                "average_customer_monetary_value": float(report["summary"].get("average_customer_monetary_value", 0.0)),
+                "purchase_frequency": float(report["summary"].get("purchase_frequency", 0.0)),
+                "customer_revenue_contribution_pct": float(report["summary"].get("customer_revenue_contribution_pct", 0.0)),
+            },
+            "segment_counts": report.get("segment_counts", {}),
+            "segment_revenue": report.get("segment_revenue", {}),
+            "top_customers": top_customers,
+            "rfm_summary": rfm.to_dict("records"),
+            "provenance": "Customer segmentation uses only valid observed transaction rows with non-null customer IDs; synthetic estimates are not treated as customer identities.",
+        }
+
+    @app.get("/api/data-quality")
+    def data_quality(request: Request):
+        order_rows = _frame(request, select(Order.order_id, Order.customer_id, Order.order_date))
+        order_id_series = pd.Series(order_rows["order_id"].tolist()) if not order_rows.empty else pd.Series(dtype=str)
+        missing_customer_count = int(_scalar(request, select(func.count()).where(Order.customer_id.is_(None))) or 0)
+        invalid_quantities = int(_scalar(request, select(func.count()).where(OrderItem.quantity <= 0)) or 0)
+        invalid_prices = int(_scalar(request, select(func.count()).where(OrderItem.unit_price < 0)) or 0)
+        duplicate_order_ids = int(order_id_series.duplicated().sum()) if not order_rows.empty else 0
+        refund_like_rows = int(_scalar(request, select(func.count()).where(OrderItem.quantity < 0)) or 0)
+        return {
+            "observed_orders": int(len(order_rows)),
+            "duplicate_order_ids": duplicate_order_ids,
+            "missing_customer_ids": missing_customer_count,
+            "non_positive_quantity_rows": invalid_quantities,
+            "negative_unit_price_rows": invalid_prices,
+            "return_or_cancelled_rows_removed": refund_like_rows,
+            "data_quality_score_pct": max(
+                0.0,
+                round(
+                    100.0
+                    - (
+                        (duplicate_order_ids + missing_customer_count + invalid_quantities + invalid_prices + refund_like_rows)
+                        / max(1, len(order_rows) or 1)
+                        * 100.0
+                    ),
+                    2,
+                ),
+            ),
+            "provenance": [
+                "Observed transaction data comes from the UCI Online Retail II source dataset.",
+                "Synthetic supplier, warehouse, and cost fields are kept separate from observed sales.",
+                "Cancelled and return-like rows are excluded from customer-level analysis and demand metrics.",
+            ],
+        }
+
     @app.get("/api/inventory/summary")
     def inventory_summary(request: Request):
         rows = _stock_frame(request)
@@ -321,20 +441,23 @@ def create_app(database_url: str | None = None) -> FastAPI:
         dead = rows.daily_demand.eq(0) & last.notna() & ((pd.Timestamp(latest_date) - last).dt.days >= dead_days)
         cogs = float(_scalar(request, select(func.sum(DailySale.estimated_cogs))) or 0)
         inventory_value = float(rows.inventory_value.sum())
+        inventory_snapshot_values = rows["inventory_value"].tolist()
+        average_inventory_value_estimated = float(np.mean(inventory_snapshot_values)) if inventory_snapshot_values else 0.0
         return {
             "available_stock": int(rows.quantity_on_hand.sum()),
             "inventory_value": inventory_value,
+            "average_inventory_value_estimated": average_inventory_value_estimated,
             "low_stock_products": int(rows.loc[low, "product_id"].nunique()),
             "overstock_products": int(rows.loc[over, "product_id"].nunique()),
             "dead_stock_value": float(rows.loc[dead, "inventory_value"].sum()),
             "low_stock_coverage_days": low_days,
             "stockout_risk_coverage_days": int(os.getenv("STOCKOUT_RISK_COVERAGE_DAYS", "30")),
-            "inventory_turnover_estimated": cogs / inventory_value if inventory_value else None,
-            "days_inventory_outstanding_estimated": days_inventory_outstanding(inventory_value, cogs, 365),
+            "inventory_turnover_estimated": cogs / average_inventory_value_estimated if average_inventory_value_estimated else None,
+            "days_inventory_outstanding_estimated": days_inventory_outstanding(average_inventory_value_estimated, cogs, 365),
             "holding_cost_estimated_annual": inventory_holding_cost(
-                inventory_value, float(os.getenv("HOLDING_COST_RATE", "0.25"))
+                average_inventory_value_estimated, float(os.getenv("HOLDING_COST_RATE", "0.25"))
             ),
-            "inventory_source": "synthetic demonstration snapshot",
+            "inventory_source": "synthetic demonstration snapshot; mean inventory value is a proxy across available inventory rows",
         }
 
     @app.get("/api/inventory/products")

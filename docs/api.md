@@ -11,6 +11,8 @@ Run the API from the repository root with `python -m uvicorn backend.app.main:ap
 | `GET /api/sales/categories?start_date=&end_date=` | Observed revenue grouped by inferred synthetic category |
 | `GET /api/sales/regions?limit=20&start_date=&end_date=` | Revenue by observed customer country |
 | `GET /api/sales/history/{product_id}?days=180` | Recent daily product demand; days 7–730 |
+| `GET /api/customers/segments?start_date=&end_date=` | RFM summary, customer segmentation distribution, top-value customers |
+| `GET /api/data-quality` | Data-cleaning validation, duplicate checks, missing IDs, and provenance summary |
 | `GET /api/inventory/summary` | Demo stock summary, low/overstock counts, dead-stock estimate |
 | `GET /api/inventory/products?limit=5000` | Product stock, value, ABC class, stock-risk proxy |
 | `GET /api/inventory/low-stock?limit=100` | Stock at or below 14 days of recent demand |

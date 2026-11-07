@@ -1,10 +1,13 @@
 const pages = [
   ["overview", "Executive overview", "01"],
-  ["inventory", "Inventory analytics", "02"],
-  ["sales", "Sales analytics", "03"],
-  ["suppliers", "Supplier analytics", "04"],
-  ["forecast", "Demand forecasting", "05"],
-  ["recommendations", "Recommendations", "06"],
+  ["sales", "Sales analytics", "02"],
+  ["products", "Product analytics", "03"],
+  ["customer", "Customer analytics", "04"],
+  ["inventory", "Inventory analytics", "05"],
+  ["suppliers", "Supplier analytics", "06"],
+  ["forecast", "Demand forecasting", "07"],
+  ["recommendations", "Recommendations", "08"],
+  ["quality", "Data quality", "09"],
 ];
 
 export default function Sidebar({ active, onChange }) {

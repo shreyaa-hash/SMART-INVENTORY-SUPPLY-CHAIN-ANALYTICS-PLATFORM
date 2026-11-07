@@ -23,5 +23,9 @@ def test_pipeline_cleans_transactions_and_labels_synthetic_data(tmp_path):
     assert report["duplicate_count_removed"] == 1
     assert len(cleaned) == 2
     assert cleaned["quantity"].gt(0).all()
+    assert cleaned["customer_id"].isna().sum() == 1
+    assert cleaned["customer_id"].notna().sum() == 1
     assert inventory["data_source"].str.contains("synthetic").all()
-    assert json.loads((tmp_path / "reports" / "data_quality.json").read_text())["invalid_records_excluded"] >= 1
+    report_json = json.loads((tmp_path / "reports" / "data_quality.json").read_text())
+    assert report_json["invalid_records_excluded"] >= 1
+    assert report_json["missing_customer_ids_in_cleaned_data"] == 1
